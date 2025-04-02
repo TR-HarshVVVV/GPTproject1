@@ -1,21 +1,9 @@
 from flask import Flask, render_template, request, jsonify
-import openai
-from dotenv import load_dotenv
-import os
-
-# Load environment variables
-load_dotenv()
+import requests
+import json
 
 # Initialize Flask app
 app = Flask(__name__)
-
-# Configure OpenAI
-api_key = os.getenv("OPENAI_API_KEY")
-if not api_key:
-    raise ValueError("No OpenAI API key found in environment variables")
-
-# Initialize the OpenAI client
-client = openai.OpenAI(api_key=api_key)
 
 @app.route('/')
 def home():
@@ -26,29 +14,32 @@ def chat():
     try:
         user_message = request.json['message']
         
-        # Get response from OpenAI using the newer API format
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": user_message}
-            ]
-        )
+        # Ollama API endpoint
+        url = "http://localhost:11434/api/generate"
         
-        # Extract the assistant's response using the new format
-        ai_response = response.choices[0].message.content
+        # Prepare the request payload
+        payload = {
+            "model": "mistral",  # Using Mistral model
+            "prompt": user_message,
+            "stream": False
+        }
+        
+        # Make request to Ollama
+        response = requests.post(url, json=payload)
+        response.raise_for_status()  # Raise an exception for bad status codes
+        
+        # Parse the response
+        result = response.json()
+        ai_response = result.get('response', '')
         
         return jsonify({"response": ai_response})
     
+    except requests.exceptions.RequestException as e:
+        print(f"Error: {str(e)}")  # For debugging
+        return jsonify({"error": "Could not connect to Ollama. Make sure Ollama is running locally."}), 500
     except Exception as e:
         print(f"Error: {str(e)}")  # For debugging
-        error_message = str(e)
-        if "Invalid API key" in error_message:
-            return jsonify({"error": "Invalid API key. Please check your API key in the .env file."}), 500
-        elif "Rate limit" in error_message:
-            return jsonify({"error": "Rate limit exceeded. Please try again later."}), 500
-        else:
-            return jsonify({"error": f"An error occurred: {error_message}"}), 500
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
 if __name__ == '__main__':
     app.run(debug=True) 
