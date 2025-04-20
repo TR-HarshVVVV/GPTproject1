@@ -2,11 +2,9 @@
 
 A web-based interface for testing and interacting with Ollama's AI models without installing them locally. This application provides a clean, modern chat interface similar to ChatGPT, allowing users to experiment with different Ollama models through a browser.
 
-![Ollama Chat Screenshot](screenshot.png)
-
 ## Features
 
-- **Multiple Model Support**: Test different Ollama models including Mistral, TinyLlama, and more
+- **Multiple Model Support**: Test different Ollama models like Mistral & TinyLlama
 - **Chat History**: Save and manage your conversations
 - **Modern UI**: Clean, responsive interface inspired by popular chat applications
 - **MongoDB Integration**: Persistent storage for all your chats and messages
@@ -43,7 +41,7 @@ A web-based interface for testing and interacting with Ollama's AI models withou
 1. Clone the repository:
 
    ```
-   git clone https://github.com/yourusername/ollama-chat-web.git
+   git clone https://github.com/TR-HarshVVVV/ollama-chat-web.git 
    cd ollama-chat-web
    ```
 
