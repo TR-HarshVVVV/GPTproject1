@@ -1,8 +1,7 @@
 // Global variables
 let selectedModel = "mistral";
 let currentChatId = null;
-let chatHistory = [];
-let chats = JSON.parse(localStorage.getItem("chats") || "[]");
+let chats = [];
 
 // DOM Elements
 const messagesContainer = document.querySelector(".messages-container");
@@ -39,72 +38,107 @@ async function loadModels() {
   try {
     const response = await fetch("/api/models");
     const models = await response.json();
-    if (models) {
+    if (models && models.length > 0) {
       modelSelector.innerHTML = models
         .map((model) => `<option value="${model}">${model}</option>`)
         .join("");
       selectedModel = models[0];
+    } else {
+      console.error("No models available");
+      modelSelector.innerHTML = '<option value="mistral">mistral</option>';
     }
   } catch (error) {
     console.error("Error loading models:", error);
+    modelSelector.innerHTML = '<option value="mistral">mistral</option>';
   }
 }
 
-// Load chats from localStorage
-function loadChats() {
-  chatHistoryContainer.innerHTML = chats
-    .map(
-      (chat) => `
-    <div class="chat-item ${
-      chat.id === currentChatId ? "active" : ""
-    }" data-chat-id="${chat.id}">
-      <span>${chat.title || "New Chat"}</span>
-      <i class="fas fa-trash delete-btn"></i>
-    </div>
-  `
-    )
-    .join("");
-}
-
-// Save chats to localStorage
-function saveChats() {
-  localStorage.setItem("chats", JSON.stringify(chats));
+// Load chats from the server
+async function loadChats() {
+  try {
+    const response = await fetch("/api/chats");
+    const data = await response.json();
+    if (data.chats) {
+      chats = data.chats;
+      chatHistoryContainer.innerHTML = chats
+        .map(
+          (chat) => `
+        <div class="chat-item ${
+          chat.id === currentChatId ? "active" : ""
+        }" data-chat-id="${chat.id}">
+          <span>${chat.title || "New Chat"}</span>
+          <i class="fas fa-trash delete-btn"></i>
+        </div>
+      `
+        )
+        .join("");
+    }
+  } catch (error) {
+    console.error("Error loading chats:", error);
+    chatHistoryContainer.innerHTML =
+      '<div class="error">Failed to load chats</div>';
+  }
 }
 
 // Create a new chat
-function createNewChat() {
-  currentChatId = Date.now().toString();
-  const newChat = {
-    id: currentChatId,
-    title: "New Chat",
-    messages: [],
-  };
-  chats.unshift(newChat);
-  saveChats();
-  loadChats();
-  showWelcomeMessage();
+async function createNewChat() {
+  try {
+    const response = await fetch("/api/chats", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        title: "New Chat",
+        model: modelSelector.value,
+      }),
+    });
+
+    const data = await response.json();
+    if (data.chat_id) {
+      currentChatId = data.chat_id;
+      await loadChats();
+      showWelcomeMessage();
+    }
+  } catch (error) {
+    console.error("Error creating chat:", error);
+  }
 }
 
 // Delete a chat
-function deleteChat(chatId) {
-  chats = chats.filter((chat) => chat.id !== chatId);
-  if (currentChatId === chatId) {
-    currentChatId = null;
-    showWelcomeMessage();
+async function deleteChat(chatId) {
+  try {
+    const response = await fetch(`/api/chats/${chatId}`, {
+      method: "DELETE",
+    });
+
+    if (response.ok) {
+      if (currentChatId === chatId) {
+        currentChatId = null;
+        showWelcomeMessage();
+      }
+      await loadChats();
+    }
+  } catch (error) {
+    console.error("Error deleting chat:", error);
   }
-  saveChats();
-  loadChats();
 }
 
 // Switch to a different chat
-function switchChat(chatId) {
-  currentChatId = chatId;
-  const chat = chats.find((c) => c.id === chatId);
-  if (chat) {
-    messagesContainer.innerHTML = chat.messages
-      .map((msg) => createMessageHTML(msg))
-      .join("");
-    loadChats(); // Update active state
+async function switchChat(chatId) {
+  try {
+    const response = await fetch(`/api/chats/${chatId}`);
+    const chat = await response.json();
+
+    if (chat) {
+      currentChatId = chatId;
+      messagesContainer.innerHTML = chat.messages
+        .map((msg) => createMessageHTML(msg))
+        .join("");
+      await loadChats(); // Update active state
+    }
+  } catch (error) {
+    console.error("Error switching chat:", error);
   }
 }
 
@@ -132,17 +166,9 @@ async function sendMessage() {
   const message = userInput.value.trim();
   if (!message || !currentChatId) return;
 
-  // Add user message to UI and chat history
+  // Add user message to UI
   const userMessage = { role: "user", content: message };
   messagesContainer.innerHTML += createMessageHTML(userMessage);
-  const chat = chats.find((c) => c.id === currentChatId);
-  chat.messages.push(userMessage);
-
-  // Update chat title if it's the first message
-  if (chat.title === "New Chat") {
-    chat.title = message.slice(0, 30) + (message.length > 30 ? "..." : "");
-    loadChats();
-  }
 
   // Clear input
   userInput.value = "";
@@ -162,12 +188,12 @@ async function sendMessage() {
 
     const data = await response.json();
 
-    // Add assistant message to UI and chat history
+    // Add assistant message to UI
     const assistantMessage = { role: "assistant", content: data.response };
     messagesContainer.innerHTML += createMessageHTML(assistantMessage);
-    chat.messages.push(assistantMessage);
 
-    saveChats();
+    // Reload chats to update the UI
+    await loadChats();
   } catch (error) {
     console.error("Error sending message:", error);
     messagesContainer.innerHTML += `

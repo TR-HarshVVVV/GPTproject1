@@ -8,42 +8,44 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-    <div class="chat-container">
+    <div class="container">
+        <!-- Sidebar -->
         <div class="sidebar">
-            <div class="sidebar-header">
-                <h2>Chats</h2>
-                <button id="new-chat" class="new-chat-btn">
-                    <i class="fas fa-plus"></i> New Chat
-                </button>
-            </div>
+            <button id="new-chat" class="new-chat-btn">
+                <i class="fas fa-plus"></i>
+                New Chat
+            </button>
             <div class="chat-history">
-                <!-- Chat history items will be dynamically added here -->
+                <!-- Chat history items will be added here dynamically -->
             </div>
         </div>
-        
+
+        <!-- Main Content -->
         <div class="main-content">
-            <div class="header">
-                <select id="model-selector" class="model-select">
-                    <!-- Models will be dynamically loaded here -->
+            <div class="model-selector">
+                <select id="model-selector">
+                    <!-- Model options will be added here dynamically -->
                 </select>
             </div>
-            
+
             <div class="messages-container">
                 <div class="welcome-message">
-                    <h1>Ollama Chat</h1>
-                    <p>Select a model and start chatting with AI.</p>
+                    <h1>Welcome to Ollama Chat</h1>
+                    <p>Select a model and start a new conversation!</p>
                 </div>
             </div>
-            
+
             <div class="input-container">
-                <textarea id="user-input" placeholder="Type your message here..." rows="1"></textarea>
-                <button id="send-button">
-                    <i class="fas fa-paper-plane"></i>
-                </button>
+                <div class="input-wrapper">
+                    <textarea id="user-input" placeholder="Type your message here..." rows="1"></textarea>
+                    <button id="send-button">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
-    
+
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html> 
